@@ -464,11 +464,10 @@ universal-re-skill/
 
 ## Contributors
 
-| Name | GitHub | Website |
-|------|--------|---------|
-| Furqan Ahmad | [@FURQANAHMAD34](https://github.com/FURQANAHMAD34) | [devyforge.com](https://devyforge.com) |
-
-Contributions are welcome — open a PR or issue on [GitHub](https://github.com/FURQANAHMAD34/universal-re-skill).
+| GitHub | Website |
+|--------|---------|
+| [@FURQANAHMAD34](https://github.com/FURQANAHMAD34) | [devyforge.com](https://devyforge.com) |
+| [@SimoneAvogadro](https://github.com/SimoneAvogadro) | [android-reverse-engineering-skill](https://github.com/SimoneAvogadro/android-reverse-engineering-skill) |
 
 ---
 
