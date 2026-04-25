@@ -7,6 +7,10 @@ set -euo pipefail
 AVAILABLE_DEPS="java jadx vineflower dex2jar apktool adb \
                 class-dump ipsw frida \
                 ilspycmd dotnet monodis de4dot \
+                ghidra cutter retdec \
+                gdb pwndbg gef peda lldb \
+                pwntools ropgadget ropper one-gadget angr \
+                valgrind volatility3 patchelf seccomp-tools afl \
                 checksec semgrep cppcheck flawfinder bandit gitleaks trufflehog gosec \
                 radare2 binwalk upx \
                 strace ltrace \
@@ -17,7 +21,22 @@ usage() {
   cat <<EOF
 Usage: install-dep.sh <dependency>
 
-Android:      java, jadx, vineflower, dex2jar, apktool, adb
+Android:        java, jadx, vineflower, dex2jar, apktool, adb
+iOS / macOS:    class-dump, ipsw, frida, xcode-cli, lldb
+.NET:           ilspycmd, dotnet, monodis, de4dot
+Decompilers:    ghidra, cutter, retdec
+Debuggers:      gdb, pwndbg, gef, peda, lldb
+Exploit Dev:    pwntools, ropgadget, ropper, one-gadget, angr
+Memory/Fuzz:    valgrind, volatility3, patchelf, seccomp-tools, afl
+SAST / Vuln:    checksec, semgrep, cppcheck, flawfinder, bandit,
+                gitleaks, trufflehog, gosec
+Binary utils:   radare2, binwalk, upx, strings-bin, objdump, readelf,
+                nm, xxd, unzip, file-cmd, strace, ltrace
+
+Windows-only tools (install manually on Windows):
+  Immunity Debugger — https://www.immunityinc.com/products/debugger/
+  x64dbg / x32dbg   — https://x64dbg.com
+  WinDbg             — Microsoft Store or Windows SDK
 iOS / macOS:  class-dump, ipsw, frida, xcode-cli (otool/nm/lipo/codesign)
 .NET:         ilspycmd, dotnet, monodis, de4dot
 SAST / Vuln:  checksec, semgrep, cppcheck, flawfinder, bandit,
@@ -726,6 +745,377 @@ install_file_cmd() {
 }
 
 # ═════════════════════════════════════════════════════════════════════════════
+# DECOMPILERS / RE SUITES
+# ═════════════════════════════════════════════════════════════════════════════
+
+install_ghidra() {
+  command -v ghidra &>/dev/null && { ok "ghidra already installed"; return 0; }
+  [[ "$PKG_MANAGER" == "brew" ]] && brew install ghidra 2>/dev/null && { ok "Ghidra installed via Homebrew"; return 0; } || true
+  info "Downloading Ghidra from GitHub releases..."
+  local tag; tag=$(gh_latest_tag "NationalSecurityAgency/ghidra")
+  local version="${tag#Ghidra_}"; version="${version%_build}"
+  # Ghidra releases use format: ghidra_VERSION_PUBLIC_YYYYMMDD.zip
+  local date_part
+  date_part=$(curl -fsSL "https://api.github.com/repos/NationalSecurityAgency/ghidra/releases/latest" 2>/dev/null | \
+    grep '"browser_download_url"' | grep '\.zip' | head -1 | grep -oP 'ghidra_[^"]+\.zip' | head -1)
+  if [[ -z "$date_part" ]]; then
+    manual "Download Ghidra from https://ghidra-sre.org and extract to ~/ghidra — requires Java 17+"
+  fi
+  local url="https://github.com/NationalSecurityAgency/ghidra/releases/download/${tag}/${date_part}"
+  local install_dir="$HOME/.local/share/ghidra"
+  local tmp; tmp=$(mktemp /tmp/ghidra-XXXXXX.zip)
+  info "Downloading Ghidra (large file — may take a moment)..."
+  download "$url" "$tmp"
+  rm -rf "$install_dir"; mkdir -p "$install_dir"
+  unzip -qo "$tmp" -d "$install_dir"; rm -f "$tmp"
+  # Find the ghidraRun script
+  local run_script; run_script=$(find "$install_dir" -name "ghidraRun" | head -1)
+  if [[ -n "$run_script" ]]; then
+    chmod +x "$run_script"
+    mkdir -p "$HOME/.local/bin"
+    cat > "$HOME/.local/bin/ghidra" <<EOF
+#!/usr/bin/env bash
+exec "$run_script" "\$@"
+EOF
+    chmod +x "$HOME/.local/bin/ghidra"
+    add_to_profile 'export PATH="$HOME/.local/bin:$PATH"'
+    ok "Ghidra installed → $install_dir  (launch: ghidra)"
+  else
+    manual "Ghidra extracted to $install_dir — run ghidraRun manually"
+  fi
+}
+
+install_cutter() {
+  command -v cutter &>/dev/null && { ok "cutter already installed"; return 0; }
+  [[ "$PKG_MANAGER" == "brew" ]] && brew install --cask cutter 2>/dev/null && return 0 || true
+  info "Downloading Cutter (radare2 GUI) from GitHub releases..."
+  local tag; tag=$(gh_latest_tag "rizinorg/cutter")
+  local version="${tag#v}"
+  local arch_str="x86_64"
+  [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]] && arch_str="arm64"
+  local url=""
+  if [[ "$OS" == "linux" ]]; then
+    url="https://github.com/rizinorg/cutter/releases/download/${tag}/Cutter-v${version}-Linux-${arch_str}.AppImage"
+    mkdir -p "$HOME/.local/bin"
+    download "$url" "$HOME/.local/bin/cutter"
+    chmod +x "$HOME/.local/bin/cutter"
+    add_to_profile 'export PATH="$HOME/.local/bin:$PATH"'
+    ok "Cutter $version installed as AppImage: ~/.local/bin/cutter"
+  elif [[ "$OS" == "macos" ]]; then
+    url="https://github.com/rizinorg/cutter/releases/download/${tag}/Cutter-v${version}-macOS-${arch_str}.dmg"
+    local tmp; tmp=$(mktemp /tmp/cutter-XXXXXX.dmg)
+    download "$url" "$tmp"
+    info "Mounting Cutter DMG..."
+    hdiutil attach "$tmp" -nobrowse -quiet
+    cp -r /Volumes/Cutter/Cutter.app /Applications/ 2>/dev/null || true
+    hdiutil detach /Volumes/Cutter 2>/dev/null || true
+    rm -f "$tmp"
+    ok "Cutter installed to /Applications/Cutter.app"
+  else
+    manual "Download Cutter from https://cutter.re"
+  fi
+}
+
+install_retdec() {
+  command -v retdec-decompiler &>/dev/null && { ok "retdec already installed"; return 0; }
+  [[ "$PKG_MANAGER" == "brew" ]] && brew install retdec 2>/dev/null && { ok "retdec via Homebrew"; return 0; } || true
+  info "Downloading RetDec from GitHub releases..."
+  local tag; tag=$(gh_latest_tag "avast/retdec")
+  local version="${tag#v}"
+  local os_str="Linux"
+  [[ "$OS" == "macos" ]] && os_str="macOS"
+  local url="https://github.com/avast/retdec/releases/download/${tag}/RetDec-v${version}-${os_str}.tar.xz"
+  local tmp; tmp=$(mktemp /tmp/retdec-XXXXXX.tar.xz)
+  info "Downloading RetDec $version (large file)..."
+  download "$url" "$tmp" || manual "Download RetDec from https://github.com/avast/retdec/releases"
+  local dir="$HOME/.local/share/retdec"
+  mkdir -p "$dir"
+  tar -xJf "$tmp" -C "$dir" 2>/dev/null || tar -xf "$tmp" -C "$dir"
+  rm -f "$tmp"
+  local bin; bin=$(find "$dir" -name "retdec-decompiler*" -type f | head -1)
+  if [[ -n "$bin" ]]; then
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$bin" "$HOME/.local/bin/retdec-decompiler"
+    add_to_profile 'export PATH="$HOME/.local/bin:$PATH"'
+    ok "RetDec $version installed → retdec-decompiler"
+  else
+    manual "RetDec extracted to $dir — add its bin/ to PATH manually"
+  fi
+}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# DEBUGGERS
+# ═════════════════════════════════════════════════════════════════════════════
+
+install_gdb() {
+  command -v gdb &>/dev/null && { ok "gdb already installed: $(gdb --version 2>/dev/null | head -1)"; return 0; }
+  case "$PKG_MANAGER" in
+    brew)   brew install gdb && info "Note: on macOS, gdb requires code signing — see: https://sourceware.org/gdb/wiki/PermissionsDarwin" ;;
+    apt)    pkg_install "gdb" ;;
+    dnf)    pkg_install "gdb" ;;
+    pacman) pkg_install "gdb" ;;
+    apk)    pkg_install "gdb" ;;
+    *)      manual "Install gdb from https://www.sourceware.org/gdb/" ;;
+  esac
+  ok "gdb installed"
+}
+
+install_pwndbg() {
+  if python3 -c "import gdb" 2>/dev/null || (command -v gdb &>/dev/null && gdb -q -ex "python import pwndbg" -ex quit 2>/dev/null | grep -q pwndbg); then
+    ok "pwndbg already installed"; return 0
+  fi
+  if ! command -v gdb &>/dev/null; then
+    info "gdb not found — installing first..."
+    install_gdb
+  fi
+  info "Installing pwndbg (GDB plugin for exploit dev)..."
+  local dir="$HOME/.local/share/pwndbg"
+  if [[ -d "$dir/.git" ]]; then
+    git -C "$dir" pull --quiet
+  else
+    git clone --depth 1 https://github.com/pwndbg/pwndbg.git "$dir"
+  fi
+  bash "$dir/setup.sh" 2>&1 | tail -5
+  ok "pwndbg installed — starts automatically with gdb"
+}
+
+install_gef() {
+  # GEF (GDB Enhanced Features) — alternative to pwndbg, lighter weight
+  if command -v gdb &>/dev/null && gdb -q -ex "python import gef" -ex quit 2>/dev/null | grep -q 'GEF'; then
+    ok "GEF already installed"; return 0
+  fi
+  if ! command -v gdb &>/dev/null; then install_gdb; fi
+  info "Installing GEF (GDB Enhanced Features)..."
+  if command -v pip3 &>/dev/null; then
+    pip3 install gef 2>/dev/null || true
+  fi
+  # Direct install method
+  local gef_script="$HOME/.gef.py"
+  download "https://gef.blah.cat/py" "$gef_script" 2>/dev/null || \
+    download "https://raw.githubusercontent.com/hugsy/gef/main/gef.py" "$gef_script"
+  # Add to .gdbinit
+  local gdbinit="$HOME/.gdbinit"
+  local gef_line="source $gef_script"
+  grep -qF "source.*gef" "$gdbinit" 2>/dev/null || echo "$gef_line" >> "$gdbinit"
+  ok "GEF installed → added to ~/.gdbinit"
+}
+
+install_peda() {
+  # PEDA — Python Exploit Development Assistance
+  if command -v gdb &>/dev/null && gdb -q -ex "python import peda" -ex quit 2>/dev/null | grep -q peda 2>/dev/null; then
+    ok "PEDA already installed"; return 0
+  fi
+  if ! command -v gdb &>/dev/null; then install_gdb; fi
+  info "Installing PEDA (Python Exploit Development Assistance for GDB)..."
+  local dir="$HOME/.local/share/peda"
+  if [[ -d "$dir/.git" ]]; then
+    git -C "$dir" pull --quiet
+  else
+    git clone --depth 1 https://github.com/longld/peda.git "$dir"
+  fi
+  local gdbinit="$HOME/.gdbinit"
+  local peda_line="source $dir/peda.py"
+  grep -qF "source.*peda" "$gdbinit" 2>/dev/null || echo "$peda_line" >> "$gdbinit"
+  ok "PEDA installed → added to ~/.gdbinit"
+  info "Note: pwndbg/gef/peda conflict — only one can be active in ~/.gdbinit at a time"
+}
+
+install_lldb() {
+  command -v lldb &>/dev/null && { ok "lldb already installed: $(lldb --version 2>/dev/null | head -1)"; return 0; }
+  case "$PKG_MANAGER" in
+    brew)   brew install llvm && add_to_profile 'export PATH="/opt/homebrew/opt/llvm/bin:$PATH"' ;;
+    apt)    pkg_install "lldb" ;;
+    dnf)    pkg_install "lldb" ;;
+    pacman) pkg_install "lldb" ;;
+    *)
+      if [[ "$OS" == "macos" ]]; then
+        info "lldb comes with Xcode Command Line Tools — run: install-dep.sh xcode-cli"
+      else
+        manual "Install lldb from https://lldb.llvm.org/"
+      fi ;;
+  esac
+  command -v lldb &>/dev/null && ok "lldb installed" || true
+}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# EXPLOIT DEVELOPMENT
+# ═════════════════════════════════════════════════════════════════════════════
+
+install_pwntools() {
+  python3 -c "import pwn" 2>/dev/null && { ok "pwntools already installed"; return 0; }
+  info "Installing pwntools..."
+  if command -v pip3 &>/dev/null; then
+    pip3 install pwntools
+  elif command -v pip &>/dev/null; then
+    pip install pwntools
+  else
+    manual "pip install pwntools  See: https://docs.pwntools.com/en/stable/install.html"
+  fi
+  python3 -c "import pwn" 2>/dev/null && ok "pwntools installed" || \
+    info "pwntools installed — you may need to restart your shell"
+}
+
+install_ropgadget() {
+  command -v ROPgadget &>/dev/null && { ok "ROPgadget already installed"; return 0; }
+  info "Installing ROPgadget..."
+  if command -v pip3 &>/dev/null; then pip3 install ROPgadget
+  elif command -v pip &>/dev/null; then pip install ROPgadget
+  else manual "pip install ROPgadget  See: https://github.com/JonathanSalwan/ROPgadget"
+  fi
+  command -v ROPgadget &>/dev/null && ok "ROPgadget installed" || \
+    add_to_profile 'export PATH="$HOME/.local/bin:$PATH"'
+}
+
+install_ropper() {
+  command -v ropper &>/dev/null && { ok "ropper already installed"; return 0; }
+  info "Installing ropper..."
+  if command -v pip3 &>/dev/null; then pip3 install ropper
+  elif command -v pip &>/dev/null; then pip install ropper
+  else manual "pip install ropper  See: https://github.com/sashs/Ropper"
+  fi
+  ok "ropper installed"
+}
+
+install_one_gadget() {
+  command -v one_gadget &>/dev/null && { ok "one_gadget already installed"; return 0; }
+  if command -v gem &>/dev/null; then
+    info "Installing one_gadget via gem..."
+    gem install one_gadget
+    ok "one_gadget installed"
+  elif [[ "$PKG_MANAGER" == "brew" ]]; then
+    brew install ruby
+    gem install one_gadget
+    ok "one_gadget installed via brew ruby"
+  elif [[ "$PKG_MANAGER" == "apt" ]]; then
+    pkg_install "ruby ruby-dev"
+    gem install one_gadget
+    ok "one_gadget installed"
+  else
+    manual "Install Ruby first, then: gem install one_gadget  See: https://github.com/david942j/one_gadget"
+  fi
+}
+
+install_angr() {
+  python3 -c "import angr" 2>/dev/null && { ok "angr already installed"; return 0; }
+  info "Installing angr (symbolic execution framework)..."
+  if command -v pip3 &>/dev/null; then
+    pip3 install angr
+  elif command -v pip &>/dev/null; then
+    pip install angr
+  else
+    manual "pip install angr  See: https://angr.io/"
+  fi
+  python3 -c "import angr" 2>/dev/null && ok "angr installed" || \
+    info "angr installed — large dependency tree, may take a few minutes"
+}
+
+# ═════════════════════════════════════════════════════════════════════════════
+# MEMORY ANALYSIS / FUZZING
+# ═════════════════════════════════════════════════════════════════════════════
+
+install_valgrind() {
+  command -v valgrind &>/dev/null && { ok "valgrind already installed: $(valgrind --version 2>/dev/null)"; return 0; }
+  if [[ "$OS" == "macos" ]]; then
+    info "Valgrind support on macOS is limited. Consider using AddressSanitizer (-fsanitize=address) instead."
+    [[ "$PKG_MANAGER" == "brew" ]] && brew install valgrind 2>/dev/null && return 0 || true
+    manual "Valgrind on macOS: https://valgrind.org/downloads/ (may not support latest macOS)"
+  fi
+  case "$PKG_MANAGER" in
+    apt)    pkg_install "valgrind" ;;
+    dnf)    pkg_install "valgrind" ;;
+    pacman) pkg_install "valgrind" ;;
+    apk)    pkg_install "valgrind" ;;
+    *)      manual "Install valgrind from https://valgrind.org/" ;;
+  esac
+  ok "valgrind installed"
+}
+
+install_volatility3() {
+  command -v vol &>/dev/null && { ok "volatility3 already installed"; return 0; }
+  python3 -c "import volatility3" 2>/dev/null && { ok "volatility3 (Python module) already installed"; return 0; }
+  info "Installing Volatility3 (memory forensics framework)..."
+  if command -v pip3 &>/dev/null; then
+    pip3 install volatility3
+    ok "volatility3 installed — run with: vol -h"
+  elif command -v pip &>/dev/null; then
+    pip install volatility3
+    ok "volatility3 installed"
+  else
+    info "Installing from GitHub source..."
+    local dir="$HOME/.local/share/volatility3"
+    git clone --depth 1 https://github.com/volatilityfoundation/volatility3.git "$dir"
+    mkdir -p "$HOME/.local/bin"
+    cat > "$HOME/.local/bin/vol" <<EOF
+#!/usr/bin/env bash
+exec python3 "$dir/vol.py" "\$@"
+EOF
+    chmod +x "$HOME/.local/bin/vol"
+    add_to_profile 'export PATH="$HOME/.local/bin:$PATH"'
+    ok "volatility3 installed from source → vol"
+  fi
+}
+
+install_patchelf() {
+  command -v patchelf &>/dev/null && { ok "patchelf already installed: $(patchelf --version 2>/dev/null)"; return 0; }
+  case "$PKG_MANAGER" in
+    brew)   brew install patchelf ;;
+    apt)    pkg_install "patchelf" ;;
+    dnf)    pkg_install "patchelf" ;;
+    pacman) pkg_install "patchelf" ;;
+    *)
+      info "Building patchelf from source..."
+      local tmp; tmp=$(mktemp -d)
+      git clone --depth 1 https://github.com/NixOS/patchelf.git "$tmp"
+      cd "$tmp" && ./bootstrap.sh && ./configure --prefix="$HOME/.local" && make -j"$(nproc 2>/dev/null || echo 2)" install
+      cd - ; rm -rf "$tmp"
+      add_to_profile 'export PATH="$HOME/.local/bin:$PATH"' ;;
+  esac
+  ok "patchelf installed"
+}
+
+install_seccomp_tools() {
+  command -v seccomp-tools &>/dev/null && { ok "seccomp-tools already installed"; return 0; }
+  if command -v gem &>/dev/null; then
+    info "Installing seccomp-tools via gem..."
+    gem install seccomp-tools
+    ok "seccomp-tools installed"
+  elif [[ "$PKG_MANAGER" == "apt" ]]; then
+    pkg_install "ruby ruby-dev libseccomp-dev"
+    gem install seccomp-tools
+    ok "seccomp-tools installed"
+  else
+    manual "Install Ruby first, then: gem install seccomp-tools  See: https://github.com/david942j/seccomp-tools"
+  fi
+}
+
+install_afl() {
+  command -v afl-fuzz &>/dev/null && { ok "AFL++ already installed: $(afl-fuzz --version 2>/dev/null | head -1)"; return 0; }
+  case "$PKG_MANAGER" in
+    brew)
+      brew install afl-fuzz 2>/dev/null || brew install aflplusplus 2>/dev/null
+      ok "AFL++ installed via Homebrew" ;;
+    apt)
+      pkg_install "afl++" 2>/dev/null || pkg_install "afl" 2>/dev/null
+      ok "AFL++ installed" ;;
+    dnf)
+      pkg_install "american-fuzzy-lop" 2>/dev/null
+      ok "AFL installed" ;;
+    pacman)
+      pkg_install "afl++" 2>/dev/null
+      ok "AFL++ installed" ;;
+    *)
+      info "Building AFL++ from source (requires gcc/make)..."
+      local dir="$HOME/.local/share/aflplusplus"
+      git clone --depth 1 https://github.com/AFLplusplus/AFLplusplus.git "$dir"
+      cd "$dir" && make -j"$(nproc 2>/dev/null || echo 2)" all && \
+        make PREFIX="$HOME/.local" install
+      cd -
+      add_to_profile 'export PATH="$HOME/.local/bin:$PATH"'
+      ok "AFL++ built and installed from source" ;;
+  esac
+}
+
+# ═════════════════════════════════════════════════════════════════════════════
 # DISPATCH
 # ═════════════════════════════════════════════════════════════════════════════
 case "$DEP" in
@@ -768,6 +1158,25 @@ case "$DEP" in
   xxd)                     install_xxd ;;
   unzip)                   install_unzip ;;
   file|file-cmd)           install_file_cmd ;;
+  # Advanced RE / Exploit-Dev
+  ghidra)                  install_ghidra ;;
+  cutter)                  install_cutter ;;
+  retdec)                  install_retdec ;;
+  gdb)                     install_gdb ;;
+  pwndbg)                  install_pwndbg ;;
+  gef)                     install_gef ;;
+  peda)                    install_peda ;;
+  lldb)                    install_lldb ;;
+  pwntools)                install_pwntools ;;
+  ropgadget|ROPgadget)     install_ropgadget ;;
+  ropper)                  install_ropper ;;
+  one-gadget|one_gadget)   install_one_gadget ;;
+  angr)                    install_angr ;;
+  valgrind)                install_valgrind ;;
+  volatility3|vol)         install_volatility3 ;;
+  patchelf)                install_patchelf ;;
+  seccomp-tools)           install_seccomp_tools ;;
+  afl|afl++)               install_afl ;;
   *)
     echo "Error: Unknown dependency '$DEP'" >&2
     echo "Run install-dep.sh --help for available dependencies." >&2

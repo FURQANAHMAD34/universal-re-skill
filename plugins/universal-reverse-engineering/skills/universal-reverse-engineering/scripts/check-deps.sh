@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # check-deps.sh — Check all dependencies for universal RE skill
 # Usage: check-deps.sh [platform]
-# Platform: android|ios|windows|linux|macos|dotnet|vuln|all (default: all)
+# Platform: android|ios|windows|linux|macos|dotnet|vuln|exploit|all (default: all)
 set -euo pipefail
 
 PLATFORM="${1:-all}"
@@ -167,6 +167,60 @@ if [[ "$PLATFORM" == "all" ]]; then
   check_cmd "binwalk"  "binwalk — firmware/embedded RE"     "optional" "binwalk"
   check_cmd "upx"      "upx — packer detection/unpacking"  "optional" "upx"
   check_cmd "frida"    "frida — dynamic instrumentation"   "optional" "frida"
+  echo ""
+fi
+
+# ── DEBUGGING / EXPLOIT-DEV ──────────────────────────────────────────────────
+if [[ "$PLATFORM" == "exploit" || "$PLATFORM" == "all" ]]; then
+  echo "--- Debugging / Exploit-Dev ---"
+  check_cmd "gdb"          "gdb — GNU debugger"                    "optional" "gdb"
+  check_cmd "lldb"         "lldb — LLVM debugger"                  "optional" "lldb"
+  check_cmd "valgrind"     "valgrind — memory error detector"      "optional" "valgrind"
+  check_cmd "pwntools"     "pwntools — CTF/exploit framework"      "optional" "pwntools"
+  check_cmd "ROPgadget"    "ROPgadget — ROP chain finder"          "optional" "ropgadget"
+  check_cmd "ropper"       "ropper — gadget/ROP finder"            "optional" "ropper"
+  check_cmd "one_gadget"   "one_gadget — one-shot shell gadget"    "optional" "one-gadget"
+  check_cmd "angr"         "angr — symbolic execution"             "optional" "angr"
+  check_cmd "patchelf"     "patchelf — ELF RPATH/interpreter edit" "optional" "patchelf"
+  check_cmd "seccomp-tools" "seccomp-tools — seccomp analysis"     "optional" "seccomp-tools"
+  check_cmd "afl-fuzz"     "AFL++ — coverage-guided fuzzer"        "optional" "afl++"
+
+  # pwndbg / GEF / PEDA — GDB extensions (check via gdb -q flag or file presence)
+  pwndbg_ok=false
+  gef_ok=false
+  peda_ok=false
+  [[ -d "$HOME/pwndbg" ]] && { ok "pwndbg" "found at ~/pwndbg"; pwndbg_ok=true; }
+  [[ -f "$HOME/.gef.py" || -f "$HOME/.config/gef/gef.py" ]] && { ok "gef" "found ~/.gef.py"; gef_ok=true; }
+  [[ -d "$HOME/peda" ]] && { ok "peda" "found at ~/peda"; peda_ok=true; }
+  $pwndbg_ok || { miss "pwndbg" "(install: install-dep.sh pwndbg)"; missing_optional+=("pwndbg"); }
+  $gef_ok    || { miss "gef"    "(install: install-dep.sh gef)";    missing_optional+=("gef"); }
+  $peda_ok   || { miss "peda"   "(install: install-dep.sh peda)";   missing_optional+=("peda"); }
+
+  # Ghidra — check for wrapper script or GHIDRA_HOME
+  ghidra_ok=false
+  command -v ghidra &>/dev/null && { ok "ghidra" "CLI wrapper found"; ghidra_ok=true; }
+  [[ -n "${GHIDRA_HOME:-}" && -d "$GHIDRA_HOME" ]] && { ok "ghidra" "GHIDRA_HOME=$GHIDRA_HOME"; ghidra_ok=true; }
+  $ghidra_ok || { miss "ghidra" "(install: install-dep.sh ghidra)"; missing_optional+=("ghidra"); }
+
+  # Cutter — AppImage or installed binary
+  cutter_ok=false
+  command -v cutter &>/dev/null && { ok "cutter" "found in PATH"; cutter_ok=true; }
+  ls "$HOME"/Cutter*.AppImage 2>/dev/null | head -1 | grep -q . && { ok "cutter" "AppImage found"; cutter_ok=true; }
+  $cutter_ok || { miss "cutter" "(install: install-dep.sh cutter)"; missing_optional+=("cutter"); }
+
+  # RetDec
+  retdec_ok=false
+  command -v retdec-decompiler &>/dev/null && { ok "retdec" "CLI found"; retdec_ok=true; }
+  [[ -f "$HOME/.local/bin/retdec-decompiler" || -f "/usr/local/bin/retdec-decompiler" ]] && { ok "retdec" "retdec-decompiler found"; retdec_ok=true; }
+  $retdec_ok || { miss "retdec" "(install: install-dep.sh retdec)"; missing_optional+=("retdec"); }
+
+  # Volatility3
+  vol_ok=false
+  command -v vol &>/dev/null && { ok "volatility3" "vol CLI found"; vol_ok=true; }
+  command -v volatility3 &>/dev/null && { ok "volatility3" "found"; vol_ok=true; }
+  python3 -c "import volatility3" 2>/dev/null && { ok "volatility3" "Python module found"; vol_ok=true; }
+  $vol_ok || { miss "volatility3" "(install: install-dep.sh volatility3)"; missing_optional+=("volatility3"); }
+
   echo ""
 fi
 
