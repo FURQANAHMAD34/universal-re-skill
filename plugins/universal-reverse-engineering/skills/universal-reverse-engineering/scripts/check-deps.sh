@@ -2,7 +2,7 @@
 # check-deps.sh — Check all dependencies for universal RE skill
 # Usage: check-deps.sh [platform]
 # Platform: android|ios|windows|linux|macos|dotnet|vuln|exploit|all (default: all)
-set -euo pipefail
+set -uo pipefail
 
 PLATFORM="${1:-all}"
 errors=0

@@ -542,7 +542,7 @@ analyze_vuln() {
   local out="$OUTPUT_ABS/vuln"
   mkdir -p "$out"
 
-  local vuln_scripts="$SCRIPT_DIR/../../../vulnerability-scanner/scripts"
+  local vuln_scripts="$SCRIPT_DIR/../../vulnerability-scanner/scripts"
 
   if [[ -f "$vuln_scripts/vuln-scan.sh" ]]; then
     bash "$vuln_scripts/vuln-scan.sh" "$TARGET_ABS" -o "$out" 2>&1 | tee -a "$LOG_FILE"

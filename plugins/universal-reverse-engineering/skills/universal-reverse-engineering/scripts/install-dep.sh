@@ -441,7 +441,7 @@ install_checksec() {
   elif command -v pip &>/dev/null; then pip install checksec
   else
     info "Trying direct install from GitHub..."
-    local url="https://raw.githubusercontent.com/slimm609/checksec.sh/main/checksec"
+    local url="https://raw.githubusercontent.com/slimm609/checksec.sh/2.7.1/checksec"
     mkdir -p "$HOME/.local/bin"
     download "$url" "$HOME/.local/bin/checksec"
     chmod +x "$HOME/.local/bin/checksec"
