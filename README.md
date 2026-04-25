@@ -35,6 +35,25 @@ and source language**.
 
 ---
 
+## Tools Integrated (40+)
+
+| Category | Tools |
+|----------|-------|
+| **Android** | jadx, apktool, dex2jar, vineflower, adb |
+| **iOS / macOS** | otool, class-dump, codesign, lipo, ipsw, frida |
+| **Windows PE** | objdump, checksec, upx, radare2 |
+| **Linux ELF** | readelf, objdump, nm, checksec, strace, ltrace, radare2 |
+| **.NET** | ilspycmd, dotnet SDK, monodis, de4dot |
+| **SAST / Secrets** | semgrep, bandit, cppcheck, flawfinder, gitleaks, trufflehog, gosec |
+| **Debugging** | gdb, pwndbg, GEF, PEDA, lldb, valgrind |
+| **Exploit Dev** | pwntools, ROPgadget, ropper, one\_gadget, angr, patchelf, seccomp-tools |
+| **Advanced RE** | Ghidra, Cutter, RetDec, radare2, binwalk, volatility3 |
+| **Fuzzing** | AFL++ |
+
+All tools are auto-installable via `scripts/install-dep.sh <name>`.
+
+---
+
 ## Vulnerability Classes Detected
 
 **Memory Safety (Binary/C/C++):**
@@ -376,15 +395,36 @@ USER: Analyze this binary for vulnerabilities. File type: $(file ./target)"
 ## Quick Tool Install
 
 ```bash
-# Install all analysis tools at once (Linux/apt)
-bash plugins/universal-reverse-engineering/skills/universal-reverse-engineering/scripts/install-dep.sh java
-bash plugins/universal-reverse-engineering/skills/universal-reverse-engineering/scripts/install-dep.sh jadx
-bash plugins/universal-reverse-engineering/skills/universal-reverse-engineering/scripts/install-dep.sh checksec
-bash plugins/universal-reverse-engineering/skills/universal-reverse-engineering/scripts/install-dep.sh semgrep
-bash plugins/universal-reverse-engineering/skills/universal-reverse-engineering/scripts/install-dep.sh radare2
+SCRIPTS=plugins/universal-reverse-engineering/skills/universal-reverse-engineering/scripts
 
-# Or check what's missing first
-bash plugins/universal-reverse-engineering/skills/universal-reverse-engineering/scripts/check-deps.sh all
+# Check what's missing first
+bash $SCRIPTS/check-deps.sh all
+
+# Android
+bash $SCRIPTS/install-dep.sh java
+bash $SCRIPTS/install-dep.sh jadx
+bash $SCRIPTS/install-dep.sh apktool
+
+# Binary analysis
+bash $SCRIPTS/install-dep.sh checksec
+bash $SCRIPTS/install-dep.sh radare2
+bash $SCRIPTS/install-dep.sh binwalk
+
+# SAST / vuln scanning
+bash $SCRIPTS/install-dep.sh semgrep
+bash $SCRIPTS/install-dep.sh bandit
+bash $SCRIPTS/install-dep.sh gitleaks
+
+# Debugging & exploit dev
+bash $SCRIPTS/install-dep.sh gdb
+bash $SCRIPTS/install-dep.sh pwndbg
+bash $SCRIPTS/install-dep.sh pwntools
+bash $SCRIPTS/install-dep.sh ropgadget
+bash $SCRIPTS/install-dep.sh angr
+
+# Advanced RE suites
+bash $SCRIPTS/install-dep.sh ghidra
+bash $SCRIPTS/install-dep.sh cutter
 ```
 
 ---
@@ -430,13 +470,14 @@ universal-re-skill/
 │           ├── universal-reverse-engineering/
 │           │   ├── SKILL.md              ← main skill definition
 │           │   ├── references/
-│           │   │   ├── setup-guide.md
+│           │   │   ├── setup-guide.md            ← all tools + one-line installs
 │           │   │   ├── android.md
 │           │   │   ├── ios.md
 │           │   │   ├── windows-pe.md
 │           │   │   ├── linux-elf.md
 │           │   │   ├── macos-macho.md
-│           │   │   └── dotnet.md
+│           │   │   ├── dotnet.md
+│           │   │   └── debugging-exploit-dev.md  ← GDB, Ghidra, pwntools, ROP, angr
 │           │   └── scripts/
 │           │       ├── detect-target.sh  ← auto-detect file type
 │           │       ├── check-deps.sh     ← dependency checker
