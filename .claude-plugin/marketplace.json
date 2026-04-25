@@ -1,0 +1,30 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "universal-re-skill",
+  "description": "Universal reverse engineering and vulnerability detection for Android, iOS, Windows PE, Linux ELF, macOS Mach-O, .NET, and more. Supports Claude Code, Cursor, Codex CLI, Aider, Continue, Windsurf, and Amazon Q.",
+  "owner": {
+    "name": "universal-re-skill contributors"
+  },
+  "metadata": {
+    "description": "Universal binary reverse engineering and source vulnerability scanning skill",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "universal-reverse-engineering",
+      "source": "./plugins/universal-reverse-engineering",
+      "description": "Reverse engineer Android APK/XAPK, iOS IPA, Windows PE/EXE/DLL, Linux ELF, macOS Mach-O, and .NET assemblies. Auto-detect file type, decompile/disassemble, extract strings, trace call flows, and document APIs.",
+      "version": "1.0.0",
+      "author": {
+        "name": "universal-re-skill contributors"
+      },
+      "license": "Apache-2.0",
+      "keywords": [
+        "reverse-engineering", "android", "ios", "windows", "linux", "macos", "pe", "elf", "mach-o",
+        "apk", "ipa", "exe", "dll", "dotnet", "jadx", "ghidra", "radare2", "decompile", "disassemble",
+        "vulnerability", "security", "binary-analysis"
+      ],
+      "category": "security"
+    }
+  ]
+}

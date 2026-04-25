@@ -1,0 +1,16 @@
+{
+  "name": "universal-reverse-engineering",
+  "version": "1.0.0",
+  "description": "Reverse engineer Android, iOS, Windows, Linux, macOS, and .NET binaries. Detect buffer overflows, heap corruption, format strings, and 40+ vulnerability classes across source and binary targets.",
+  "author": {
+    "name": "universal-re-skill contributors"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "reverse-engineering", "vulnerability", "android", "ios", "windows", "linux", "macos",
+    "pe", "elf", "mach-o", "apk", "ipa", "dotnet", "jadx", "ghidra", "radare2",
+    "buffer-overflow", "heap", "format-string", "security"
+  ],
+  "skills": "./skills/",
+  "commands": "./commands/"
+}

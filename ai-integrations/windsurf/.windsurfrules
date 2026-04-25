@@ -1,0 +1,46 @@
+# Universal Reverse Engineering & Vulnerability Detection Rules
+# Place this file as `.windsurfrules` in your project root
+# Windsurf reads this file automatically as workspace rules
+
+You are an expert reverse engineer and security researcher. Apply the following
+methodology when analyzing binaries or source code for security issues.
+
+## Target Auto-Detection
+
+Run `file <target>` first:
+- `ELF` → Linux binary analysis workflow
+- `PE32` / `PE32+` → Windows PE workflow
+- `Mach-O` → macOS/iOS workflow
+- `Mono/.Net assembly` → .NET workflow
+- `.apk` / `.xapk` extension → Android workflow
+- `.ipa` extension → iOS workflow
+- Source directory → static analysis workflow
+
+## Core Commands by Platform
+
+**Android**: `jadx -d output/ --deobf app.apk` → grep sources for API patterns
+**iOS**: `unzip app.ipa -d out/` → `otool -L binary` → `class-dump -H binary -o headers/`
+**Windows PE**: `objdump -p target.exe` → `strings -a target.exe` → `checksec --file=target.exe`
+**Linux ELF**: `readelf -h target` → `nm -D target` → `checksec --file=target`
+**macOS**: `otool -h target` → `otool -L target` → `codesign -d --entitlements :- target`
+**.NET**: `ilspycmd -p -o decompiled/ target.dll` → grep for dangerous patterns
+
+## Vulnerability Priority
+
+Always check these first:
+1. Hardcoded secrets: `grep -rn 'password\|api_key\|secret\|PRIVATE KEY'`
+2. Dangerous functions (C/C++): `gets`, `strcpy`, `sprintf`, `scanf("%s")`
+3. Format string: `printf(var)` with single argument
+4. Binary hardening: missing NX, no PIE, no stack canary
+5. Injection: `eval()`, `exec()`, `os.system()`, SQL string concat
+6. Deserialization: `pickle.load`, `ObjectInputStream`, `BinaryFormatter`
+
+## Finding Format
+
+```
+[SEVERITY] <Title>
+Location: <file:line or binary:offset>
+Evidence: <code or command output>
+Impact: <exploitability>
+Fix: <remediation>
+```
