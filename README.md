@@ -1,5 +1,7 @@
 # Universal Reverse Engineering & Vulnerability Detection Skill
 
+> **Author**: [FURQANAHMAD34](https://github.com/FURQANAHMAD34) — [devyforge.com](https://devyforge.com)
+
 A universal plugin/skill for AI coding assistants that adds expert-level reverse
 engineering and vulnerability detection capabilities for **every major binary format
 and source language**.
@@ -76,7 +78,7 @@ The native plugin format. Works with the `/analyze` and `/vuln-scan` slash comma
 
 ```bash
 # 1. Clone the repo
-git clone https://github.com/your-org/universal-re-skill.git
+git clone https://github.com/FURQANAHMAD34/universal-re-skill.git
 cd universal-re-skill
 
 # 2. Install the plugin into Claude Code
@@ -95,7 +97,7 @@ claude   # open Claude Code
 #### Option B — Install from marketplace URL
 
 ```bash
-claude plugin install https://github.com/your-org/universal-re-skill
+claude plugin install https://github.com/FURQANAHMAD34/universal-re-skill
 ```
 
 #### Option C — Manual install (no CLI)
@@ -460,6 +462,20 @@ universal-re-skill/
 
 ---
 
+## Contributors
+
+| Name | GitHub | Website |
+|------|--------|---------|
+| Furqan Ahmad | [@FURQANAHMAD34](https://github.com/FURQANAHMAD34) | [devyforge.com](https://devyforge.com) |
+
+Contributions are welcome — open a PR or issue on [GitHub](https://github.com/FURQANAHMAD34/universal-re-skill).
+
+---
+
 ## License
 
 Apache 2.0 — see LICENSE file.
+
+---
+
+<p align="center">Built by <a href="https://devyforge.com">devyforge.com</a></p>
