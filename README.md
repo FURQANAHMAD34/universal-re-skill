@@ -1,3 +1,16 @@
+<div align="center">
+
+<img src="https://img.shields.io/badge/Reverse_Engineering-CF2A27?style=for-the-badge"/>
+<img src="https://img.shields.io/badge/Android%20%C2%B7%20iOS%20%C2%B7%20PE%20%C2%B7%20ELF%20%C2%B7%20Mach--O%20%C2%B7%20.NET-0b4f66?style=for-the-badge"/>
+<img src="https://img.shields.io/badge/AI--Agnostic%20Skill-17b3a6?style=for-the-badge"/>
+<br/>
+<a href="https://github.com/FURQANAHMAD34"><img src="https://img.shields.io/badge/by%20Furqan%20Ahmad-181717?style=flat-square&logo=github&logoColor=white"/></a>
+<img src="https://img.shields.io/badge/Claude%20Code%20%C2%B7%20Cursor%20%C2%B7%20Copilot%20%C2%B7%20Windsurf%20%C2%B7%20Aider%20%C2%B7%20Amazon%20Q-232F3E?style=flat-square"/>
+<img src="https://img.shields.io/badge/Frida-E63329?style=flat-square"/>
+<img src="https://img.shields.io/badge/Ghidra-CF2A27?style=flat-square"/>
+
+</div>
+
 # Universal Reverse Engineering & Vulnerability Detection Skill
 
 > **Author**: [FURQANAHMAD34](https://github.com/FURQANAHMAD34) — [devyforge.com](https://devyforge.com)
